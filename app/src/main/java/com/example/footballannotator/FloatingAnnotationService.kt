@@ -70,7 +70,12 @@ class FloatingAnnotationService : Service() {
         wm.addView(drawView, drawParams)
         wm.addView(toolbar, toolbarParams)
 
-        startForeground(NOTIF_ID, buildNotification())
+        // 前台服务：包在 try/catch 中，任何权限/类型问题都不应导致闪退
+        try {
+            startForeground(NOTIF_ID, buildNotification())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     /** 切换绘制窗是否拦截触摸：true=绘制/选择模式，false=观看模式（穿透） */
