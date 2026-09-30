@@ -14,7 +14,7 @@ import android.widget.TextView
 import androidx.core.graphics.toColorInt
 
 /**
- * 浮窗工具栏：可拖拽标题栏 + 可折叠面板。
+ * 浮窗工具栏：可拖拽标题栏 + 可折叠面板（整体已缩小，更适合手机屏幕）。
  * 标题栏右侧常驻「展开/收起」按钮，因此面板收起后仍可重新打开。
  * 按钮均使用 selector/圆角背景，提供按压质感。
  * 颜色块点击时有放大动画 + 白色高亮环，直观显示当前选中色。
@@ -29,26 +29,27 @@ class ToolbarView @JvmOverloads constructor(
     private val header = LinearLayout(context).apply {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(24, 16, 16, 16)
+        setPadding(12, 8, 12, 8)
         background = context.getDrawable(R.drawable.toolbar_header_bg)
     }
     private val title = TextView(context).apply {
         text = "足球标注 · 拖动我"
         setTextColor(Color.WHITE)
-        textSize = 14f
+        textSize = 12f
         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
     }
     private val toggleBtn = TextView(context).apply {
         text = "收起"
         setTextColor(Color.WHITE)
-        setPadding(16, 8, 16, 8)
+        textSize = 11f
+        setPadding(10, 5, 10, 5)
         background = context.getDrawable(R.drawable.button_bg)
         isClickable = true
         isFocusable = true
     }
     private val panel = LinearLayout(context).apply {
         orientation = VERTICAL
-        setPadding(12, 12, 12, 12)
+        setPadding(8, 8, 8, 8)
         background = context.getDrawable(R.drawable.toolbar_panel_bg)
     }
     private var collapsed = false
@@ -98,11 +99,11 @@ class ToolbarView @JvmOverloads constructor(
         colors.forEach { hex ->
             val inner = View(context).apply {
                 setBackgroundColor(hex.toColorInt())
-                layoutParams = FrameLayout.LayoutParams(36, 36, Gravity.CENTER)
+                layoutParams = FrameLayout.LayoutParams(20, 20, Gravity.CENTER)
             }
             val sw = FrameLayout(context).apply {
                 background = context.getDrawable(R.drawable.color_swatch_bg)
-                layoutParams = LinearLayout.LayoutParams(48, 48).apply { setMargins(6, 6, 6, 6) }
+                layoutParams = LinearLayout.LayoutParams(28, 28).apply { setMargins(3, 3, 3, 3) }
                 addView(inner)
             }
             sw.setOnClickListener {
@@ -118,7 +119,8 @@ class ToolbarView @JvmOverloads constructor(
         val label = TextView(context).apply {
             text = "粗细"
             setTextColor(Color.WHITE)
-            setPadding(8, 0, 8, 0)
+            textSize = 11f
+            setPadding(4, 0, 4, 0)
         }
         val seek = SeekBar(context).apply { max = 28; progress = 6 }
         seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -128,7 +130,7 @@ class ToolbarView @JvmOverloads constructor(
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
-        seek.layoutParams = LinearLayout.LayoutParams(300, LinearLayout.LayoutParams.WRAP_CONTENT)
+        seek.layoutParams = LinearLayout.LayoutParams(160, LinearLayout.LayoutParams.WRAP_CONTENT)
         thickRow.addView(label)
         thickRow.addView(seek)
 
@@ -141,13 +143,17 @@ class ToolbarView @JvmOverloads constructor(
     private fun makeButton(label: String, onClick: () -> Unit): Button {
         return Button(context).apply {
             text = label
+            textSize = 11f
             setTextColor(Color.WHITE)
             background = context.getDrawable(R.drawable.button_bg)
             setOnClickListener { onClick() }
+            minHeight = 0
+            minimumHeight = 0
+            setPadding(8, 6, 8, 6)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(4, 4, 4, 4) }
+            ).apply { setMargins(2, 2, 2, 2) }
         }
     }
 
@@ -161,14 +167,12 @@ class ToolbarView @JvmOverloads constructor(
                 .scaleY(if (selected) 1.25f else 1f)
                 .setDuration(200)
                 .start()
-            // 选中色加一个白色高亮环
             v.foreground = if (selected) context.getDrawable(R.drawable.color_swatch_selected_bg) else null
         }
     }
 
     private fun setupToggle() {
         toggleBtn.setOnClickListener { togglePanel() }
-        // 标题栏双击也能展开/收起
         title.setOnClickListener {
             val now = System.currentTimeMillis()
             if (now - lastTap < 300) togglePanel()
