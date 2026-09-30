@@ -318,28 +318,27 @@ class DrawingView @JvmOverloads constructor(
         val dy = y2 - y1
         val len = hypot(dx, dy).toFloat()
         if (len < 1f) return kotlin.math.atan2(dy, dx).toFloat()
-        val waveLen = 20f
-        val steps = max(4, (len / waveLen).toInt())
+
+        // 密集采样 + 正弦偏移，画出平滑波浪；箭头方向用整体方向更稳
+        val stepPx = 5f
+        val steps = max(12, (len / stepPx).toInt())
         val amp = p.strokeWidth * 0.5f
+        // 每约 45dp 一个完整波浪周期
+        val cycles = len / 45f
+
         path.reset()
         path.moveTo(x1, y1)
         val nx = -dy / len
         val ny = dx / len
-        var lastX = x1
-        var lastY = y1
         for (i in 1..steps) {
             val t = i / steps.toFloat()
-            val bx = x1 + dx * t
-            val by = y1 + dy * t
-            val wave = if (i % 2 == 0) amp else -amp
-            val px = if (i == steps) x2 else bx + nx * wave
-            val py = if (i == steps) y2 else by + ny * wave
-            path.lineTo(px, py)
-            lastX = px
-            lastY = py
+            val baseX = x1 + dx * t
+            val baseY = y1 + dy * t
+            val wave = kotlin.math.sin(t * 2.0 * Math.PI * cycles).toFloat() * amp
+            path.lineTo(baseX + nx * wave, baseY + ny * wave)
         }
         c.drawPath(path, p)
-        return kotlin.math.atan2(y2 - lastY, x2 - lastX).toFloat()
+        return kotlin.math.atan2(dy, dx).toFloat()
     }
 
     private fun drawArrowHead(
