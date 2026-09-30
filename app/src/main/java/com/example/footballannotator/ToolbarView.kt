@@ -53,6 +53,7 @@ class ToolbarView @JvmOverloads constructor(
 
     private val colorViews = mutableListOf<Pair<String, FrameLayout>>()
     private var selectedColorHex = "#FFFF00"
+    private val toolButtons = mutableMapOf<Tool, Button>()
 
     init {
         orientation = VERTICAL
@@ -64,6 +65,15 @@ class ToolbarView @JvmOverloads constructor(
         buildPanel()
         setupDrag()
         highlightColor("#FFFF00")
+        highlightTool(Tool.VIEW)
+    }
+
+    private fun highlightTool(tool: Tool) {
+        toolButtons.forEach { (t, btn) ->
+            btn.background = context.getDrawable(
+                if (t == tool) R.drawable.button_selected_bg else R.drawable.button_bg
+            )
+        }
     }
 
     private fun buildPanel() {
@@ -84,18 +94,24 @@ class ToolbarView @JvmOverloads constructor(
 
         val row1 = LinearLayout(context).apply { orientation = HORIZONTAL }
         row1Specs.forEach { (label, tool) ->
-            row1.addView(makeButton(label, weight = 1f) {
+            val btn = makeButton(label, weight = 1f) {
                 drawView.currentTool = tool
                 service.setDrawMode(tool != Tool.VIEW)
-            })
+                highlightTool(tool)
+            }
+            toolButtons[tool] = btn
+            row1.addView(btn)
         }
 
         val row2 = LinearLayout(context).apply { orientation = HORIZONTAL }
         row2Specs.forEach { (label, tool) ->
-            row2.addView(makeButton(label, weight = 1f) {
+            val btn = makeButton(label, weight = 1f) {
                 drawView.currentTool = tool
                 service.setDrawMode(tool != Tool.VIEW)
-            })
+                highlightTool(tool)
+            }
+            toolButtons[tool] = btn
+            row2.addView(btn)
         }
         row2.addView(makeButton("撤销", weight = 1f) { drawView.undo() })
         row2.addView(makeButton("删除", weight = 1f) { drawView.deleteSelected() })
