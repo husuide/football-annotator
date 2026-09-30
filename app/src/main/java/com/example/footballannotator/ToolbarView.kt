@@ -7,14 +7,16 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
 
 /**
- * 浮窗工具栏：可拖拽标题栏 + 面板。
- * 面板含：工具选择 / 撤销 / 删除选中 / 清空 / 收起 / 关闭 / 颜色 / 粗细。
+ * 浮窗工具栏：可拖拽标题栏 + 可折叠面板。
+ * 标题栏右侧常驻「展开/收起」按钮，因此面板收起后仍可重新打开。
+ * 按钮均使用 selector/圆角背景，提供按压质感。
  */
 class ToolbarView @JvmOverloads constructor(
     context: Context,
@@ -23,24 +25,41 @@ class ToolbarView @JvmOverloads constructor(
     private val service: FloatingAnnotationService
 ) : LinearLayout(context) {
 
-    private val header = TextView(context).apply {
+    private val header = LinearLayout(context).apply {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(24, 16, 16, 16)
+        background = context.getDrawable(R.drawable.toolbar_header_bg)
+    }
+    private val title = TextView(context).apply {
         text = "足球标注 · 拖动我"
-        setPadding(24, 16, 24, 16)
-        setBackgroundColor(0xFF333333.toInt())
         setTextColor(Color.WHITE)
+        textSize = 14f
+        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+    }
+    private val toggleBtn = TextView(context).apply {
+        text = "收起"
+        setTextColor(Color.WHITE)
+        setPadding(16, 8, 16, 8)
+        background = context.getDrawable(R.drawable.button_bg)
+        isClickable = true
+        isFocusable = true
     }
     private val panel = LinearLayout(context).apply {
-        orientation = HORIZONTAL
+        orientation = VERTICAL
         setPadding(12, 12, 12, 12)
-        setBackgroundColor(0xCC222222.toInt())
+        background = context.getDrawable(R.drawable.toolbar_panel_bg)
     }
     private var collapsed = false
 
     init {
         orientation = VERTICAL
+        header.addView(title)
+        header.addView(toggleBtn)
         addView(header)
         addView(panel)
         buildPanel()
+        setupToggle()
         setupDrag()
     }
 
@@ -64,15 +83,19 @@ class ToolbarView @JvmOverloads constructor(
         actionRow.addView(makeButton("撤销") { drawView.undo() })
         actionRow.addView(makeButton("删除") { drawView.deleteSelected() })
         actionRow.addView(makeButton("清空") { drawView.clearAll() })
-        actionRow.addView(makeButton("收起") { togglePanel() })
         actionRow.addView(makeButton("关闭") { service.stopSelf() })
 
         val colorRow = LinearLayout(context).apply { orientation = HORIZONTAL }
         val colors = listOf("#FFFF00", "#FF3B30", "#34C759", "#007AFF", "#FFFFFF", "#000000")
         colors.forEach { hex ->
-            val sw = View(context).apply {
+            val inner = View(context).apply {
                 setBackgroundColor(hex.toColorInt())
+                layoutParams = FrameLayout.LayoutParams(36, 36, Gravity.CENTER)
+            }
+            val sw = FrameLayout(context).apply {
+                background = context.getDrawable(R.drawable.color_swatch_bg)
                 layoutParams = LinearLayout.LayoutParams(48, 48).apply { setMargins(6, 6, 6, 6) }
+                addView(inner)
             }
             sw.setOnClickListener { drawView.paintColor = hex.toColorInt() }
             colorRow.addView(sw)
@@ -96,7 +119,6 @@ class ToolbarView @JvmOverloads constructor(
         thickRow.addView(label)
         thickRow.addView(seek)
 
-        panel.orientation = VERTICAL
         panel.addView(toolRow)
         panel.addView(actionRow)
         panel.addView(colorRow)
@@ -107,7 +129,7 @@ class ToolbarView @JvmOverloads constructor(
         return Button(context).apply {
             text = label
             setTextColor(Color.WHITE)
-            setBackgroundColor(0xFF555555.toInt())
+            background = context.getDrawable(R.drawable.button_bg)
             setOnClickListener { onClick() }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -116,9 +138,22 @@ class ToolbarView @JvmOverloads constructor(
         }
     }
 
+    private fun setupToggle() {
+        toggleBtn.setOnClickListener { togglePanel() }
+        // 标题栏双击也能展开/收起
+        title.setOnClickListener {
+            val now = System.currentTimeMillis()
+            if (now - lastTap < 300) togglePanel()
+            lastTap = now
+        }
+    }
+
+    private var lastTap = 0L
+
     private fun togglePanel() {
         collapsed = !collapsed
         panel.visibility = if (collapsed) GONE else VISIBLE
+        toggleBtn.text = if (collapsed) "展开" else "收起"
     }
 
     private fun setupDrag() {
