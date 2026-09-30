@@ -202,7 +202,13 @@ class DrawingView @JvmOverloads constructor(
         handleCenter = if (selectedIndex >= 0) {
             val a = state.annotations[selectedIndex]
             when (a) {
-                is Annotation.Arrow, is Annotation.Line -> {
+                is Annotation.Arrow -> {
+                    val b = bounds(a)
+                    endpoints.add(PointF(a.x1, a.y1))
+                    endpoints.add(PointF(a.x2, a.y2))
+                    PointF(b.maxX + HANDLE_R + 4f, b.minY - HANDLE_R - 4f)
+                }
+                is Annotation.Line -> {
                     val b = bounds(a)
                     endpoints.add(PointF(a.x1, a.y1))
                     endpoints.add(PointF(a.x2, a.y2))
