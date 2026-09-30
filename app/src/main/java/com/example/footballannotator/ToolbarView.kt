@@ -127,17 +127,16 @@ class ToolbarView @JvmOverloads constructor(
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
-        seek.layoutParams = LinearLayout.LayoutParams(160, LinearLayout.LayoutParams.WRAP_CONTENT)
+        seek.layoutParams = LinearLayout.LayoutParams(240, LinearLayout.LayoutParams.WRAP_CONTENT)
         thickRow.addView(label)
         thickRow.addView(seek)
 
-        panel.addView(toolRow)
-        panel.addView(actionRow)
+        panel.addView(grid)
         panel.addView(colorRow)
         panel.addView(thickRow)
     }
 
-    private fun makeButton(label: String, onClick: () -> Unit): Button {
+    private fun makeButton(label: String, weight: Float = 0f, onClick: () -> Unit): Button {
         return Button(context).apply {
             text = label
             textSize = 11f
@@ -146,10 +145,12 @@ class ToolbarView @JvmOverloads constructor(
             setOnClickListener { onClick() }
             minHeight = 0
             minimumHeight = 0
-            setPadding(8, 6, 8, 6)
+            setPadding(4, 6, 4, 6)
+            val width = if (weight > 0f) 0 else LinearLayout.LayoutParams.WRAP_CONTENT
             layoutParams = LinearLayout.LayoutParams(
+                width,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                weight
             ).apply { setMargins(2, 2, 2, 2) }
         }
     }
