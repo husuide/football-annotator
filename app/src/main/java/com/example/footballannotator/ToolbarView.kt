@@ -67,29 +67,43 @@ class ToolbarView @JvmOverloads constructor(
     }
 
     private fun buildPanel() {
-        val toolSpecs = listOf(
+        // 工具按钮：2 行 × 6 列
+        val grid = LinearLayout(context).apply { orientation = VERTICAL }
+        val row1Specs = listOf(
             "圆圈" to Tool.CIRCLE,
             "实箭" to Tool.ARROW,
             "虚箭" to Tool.DASHED_ARROW,
             "波浪" to Tool.WAVY_ARROW,
             "实线" to Tool.LINE,
-            "虚线" to Tool.DASHED_LINE,
+            "虚线" to Tool.DASHED_LINE
+        )
+        val row2Specs = listOf(
             "选择" to Tool.SELECT,
             "观看" to Tool.VIEW
         )
-        val toolRow = LinearLayout(context).apply { orientation = HORIZONTAL }
-        toolSpecs.forEach { (label, tool) ->
-            toolRow.addView(makeButton(label) {
+
+        val row1 = LinearLayout(context).apply { orientation = HORIZONTAL }
+        row1Specs.forEach { (label, tool) ->
+            row1.addView(makeButton(label, weight = 1f) {
                 drawView.currentTool = tool
                 service.setDrawMode(tool != Tool.VIEW)
             })
         }
 
-        val actionRow = LinearLayout(context).apply { orientation = HORIZONTAL }
-        actionRow.addView(makeButton("撤销") { drawView.undo() })
-        actionRow.addView(makeButton("删除") { drawView.deleteSelected() })
-        actionRow.addView(makeButton("清空") { drawView.clearAll() })
-        actionRow.addView(makeButton("关闭") { service.stopSelf() })
+        val row2 = LinearLayout(context).apply { orientation = HORIZONTAL }
+        row2Specs.forEach { (label, tool) ->
+            row2.addView(makeButton(label, weight = 1f) {
+                drawView.currentTool = tool
+                service.setDrawMode(tool != Tool.VIEW)
+            })
+        }
+        row2.addView(makeButton("撤销", weight = 1f) { drawView.undo() })
+        row2.addView(makeButton("删除", weight = 1f) { drawView.deleteSelected() })
+        row2.addView(makeButton("清空", weight = 1f) { drawView.clearAll() })
+        row2.addView(makeButton("关闭", weight = 1f) { service.stopSelf() })
+
+        grid.addView(row1)
+        grid.addView(row2)
 
         val colorRow = LinearLayout(context).apply { orientation = HORIZONTAL }
         val colors = listOf("#FFFF00", "#FF3B30", "#34C759", "#007AFF", "#FFFFFF", "#000000")
