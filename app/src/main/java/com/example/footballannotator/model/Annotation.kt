@@ -1,7 +1,5 @@
 package com.example.footballannotator.model
 
-import android.graphics.Color
-
 sealed class Annotation(
     open val color: Int,
     open val strokeWidth: Float
@@ -19,6 +17,7 @@ sealed class Annotation(
         val y1: Float,
         var x2: Float,
         var y2: Float,
+        val style: ArrowStyle = ArrowStyle.SOLID,
         override val color: Int,
         override val strokeWidth: Float
     ) : Annotation(color, strokeWidth)
@@ -28,6 +27,7 @@ sealed class Annotation(
         val y1: Float,
         var x2: Float,
         var y2: Float,
+        val style: LineStyle = LineStyle.SOLID,
         override val color: Int,
         override val strokeWidth: Float
     ) : Annotation(color, strokeWidth)

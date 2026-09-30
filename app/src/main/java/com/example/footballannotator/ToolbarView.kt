@@ -17,6 +17,7 @@ import androidx.core.graphics.toColorInt
  * 浮窗工具栏：可拖拽标题栏 + 可折叠面板。
  * 标题栏右侧常驻「展开/收起」按钮，因此面板收起后仍可重新打开。
  * 按钮均使用 selector/圆角背景，提供按压质感。
+ * 颜色块点击时有放大动画 + 白色高亮环，直观显示当前选中色。
  */
 class ToolbarView @JvmOverloads constructor(
     context: Context,
@@ -52,6 +53,9 @@ class ToolbarView @JvmOverloads constructor(
     }
     private var collapsed = false
 
+    private val colorViews = mutableListOf<Pair<String, FrameLayout>>()
+    private var selectedColorHex = "#FFFF00"
+
     init {
         orientation = VERTICAL
         header.addView(title)
@@ -61,13 +65,17 @@ class ToolbarView @JvmOverloads constructor(
         buildPanel()
         setupToggle()
         setupDrag()
+        highlightColor("#FFFF00")
     }
 
     private fun buildPanel() {
         val toolSpecs = listOf(
             "圆圈" to Tool.CIRCLE,
-            "箭头" to Tool.ARROW,
-            "线条" to Tool.LINE,
+            "实箭" to Tool.ARROW,
+            "虚箭" to Tool.DASHED_ARROW,
+            "波浪" to Tool.WAVY_ARROW,
+            "实线" to Tool.LINE,
+            "虚线" to Tool.DASHED_LINE,
             "选择" to Tool.SELECT,
             "观看" to Tool.VIEW
         )
@@ -97,7 +105,12 @@ class ToolbarView @JvmOverloads constructor(
                 layoutParams = LinearLayout.LayoutParams(48, 48).apply { setMargins(6, 6, 6, 6) }
                 addView(inner)
             }
-            sw.setOnClickListener { drawView.paintColor = hex.toColorInt() }
+            sw.setOnClickListener {
+                drawView.paintColor = hex.toColorInt()
+                drawView.animateColorSelection(sw)
+                highlightColor(hex)
+            }
+            colorViews.add(hex to sw)
             colorRow.addView(sw)
         }
 
@@ -135,6 +148,21 @@ class ToolbarView @JvmOverloads constructor(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { setMargins(4, 4, 4, 4) }
+        }
+    }
+
+    private fun highlightColor(hex: String) {
+        selectedColorHex = hex
+        colorViews.forEach { (h, v) ->
+            val selected = h == hex
+            v.animate().cancel()
+            v.animate()
+                .scaleX(if (selected) 1.25f else 1f)
+                .scaleY(if (selected) 1.25f else 1f)
+                .setDuration(200)
+                .start()
+            // 选中色加一个白色高亮环
+            v.foreground = if (selected) context.getDrawable(R.drawable.color_swatch_selected_bg) else null
         }
     }
 
