@@ -285,12 +285,15 @@ class DrawingView @JvmOverloads constructor(
             }
             is Annotation.Arrow -> {
                 applyArrowStyle(a.style)
-                when (a.style) {
+                val endAngle = when (a.style) {
                     ArrowStyle.WAVY -> drawWavyLine(c, a.x1, a.y1, a.x2, a.y2, paint)
-                    else -> c.drawLine(a.x1, a.y1, a.x2, a.y2, paint)
+                    else -> {
+                        c.drawLine(a.x1, a.y1, a.x2, a.y2, paint)
+                        kotlin.math.atan2(a.y2 - a.y1, a.x2 - a.x1)
+                    }
                 }
                 paint.pathEffect = null
-                drawArrowHead(c, a.x1, a.y1, a.x2, a.y2, paint)
+                drawArrowHead(c, a.x2, a.y2, endAngle, paint)
             }
         }
     }
@@ -310,30 +313,39 @@ class DrawingView @JvmOverloads constructor(
         }
     }
 
-    private fun drawWavyLine(c: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, p: Paint) {
+    private fun drawWavyLine(c: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, p: Paint): Float {
         val dx = x2 - x1
         val dy = y2 - y1
         val len = hypot(dx, dy).toFloat()
-        if (len < 1f) return
-        val steps = max(2, (len / 12f).toInt())
+        if (len < 1f) return kotlin.math.atan2(dy, dx)
+        val waveLen = 20f           // 波长，越大越缓
+        val steps = max(4, (len / waveLen).toInt())
+        val amp = p.strokeWidth * 0.5f  // 波动幅度，小一点
         path.reset()
         path.moveTo(x1, y1)
         val nx = -dy / len
         val ny = dx / len
+        var lastX = x1
+        var lastY = y1
         for (i in 1..steps) {
             val t = i / steps.toFloat()
             val bx = x1 + dx * t
             val by = y1 + dy * t
-            val wave = if (i % 2 == 0) p.strokeWidth * 1.5f else -p.strokeWidth * 1.5f
-            path.lineTo(bx + nx * wave, by + ny * wave)
+            val wave = if (i % 2 == 0) amp else -amp
+            // 最后一点对齐到终点，保证箭头连接自然
+            val px = if (i == steps) x2 else bx + nx * wave
+            val py = if (i == steps) y2 else by + ny * wave
+            path.lineTo(px, py)
+            lastX = px
+            lastY = py
         }
         c.drawPath(path, p)
+        return kotlin.math.atan2(y2 - lastY, x2 - lastX)
     }
 
     private fun drawArrowHead(
-        c: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, p: Paint
+        c: Canvas, x2: Float, y2: Float, angle: Double, p: Paint
     ) {
-        val angle = kotlin.math.atan2(y2 - y1, x2 - x1)
         val len = 18f + p.strokeWidth * 2f
         val a1 = angle + Math.toRadians(25.0)
         val a2 = angle - Math.toRadians(25.0)

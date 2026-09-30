@@ -26,17 +26,14 @@ class ToolbarView @JvmOverloads constructor(
     private val service: FloatingAnnotationService
 ) : LinearLayout(context) {
 
-    private val header = LinearLayout(context).apply {
-        orientation = HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(12, 8, 12, 8)
-        background = context.getDrawable(R.drawable.toolbar_header_bg)
-    }
+    private lateinit var header: DragHeader
     private val title = TextView(context).apply {
         text = "足球标注 · 拖动我"
         setTextColor(Color.WHITE)
         textSize = 12f
         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        isClickable = false
+        isFocusable = false
     }
     private val toggleBtn = TextView(context).apply {
         text = "收起"
@@ -44,8 +41,8 @@ class ToolbarView @JvmOverloads constructor(
         textSize = 11f
         setPadding(10, 5, 10, 5)
         background = context.getDrawable(R.drawable.button_bg)
-        isClickable = true
-        isFocusable = true
+        isClickable = false
+        isFocusable = false
     }
     private val panel = LinearLayout(context).apply {
         orientation = VERTICAL
@@ -59,12 +56,12 @@ class ToolbarView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        header = DragHeader(context, title, toggleBtn, onToggle = { togglePanel() }, onDoubleTapTitle = { togglePanel() })
         header.addView(title)
         header.addView(toggleBtn)
         addView(header)
         addView(panel)
         buildPanel()
-        setupToggle()
         setupDrag()
         highlightColor("#FFFF00")
     }
@@ -171,15 +168,6 @@ class ToolbarView @JvmOverloads constructor(
         }
     }
 
-    private fun setupToggle() {
-        toggleBtn.setOnClickListener { togglePanel() }
-        title.setOnClickListener {
-            val now = System.currentTimeMillis()
-            if (now - lastTap < 300) togglePanel()
-            lastTap = now
-        }
-    }
-
     private var lastTap = 0L
 
     private fun togglePanel() {
@@ -190,27 +178,87 @@ class ToolbarView @JvmOverloads constructor(
 
     private fun setupDrag() {
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        var startX = 0f
-        var startY = 0f
-        var paramX = 0
-        var paramY = 0
-        header.setOnTouchListener { _, event ->
+        header.onDrag = { dx, dy ->
+            service.toolbarParams.x = dx.toInt()
+            service.toolbarParams.y = dy.toInt()
+            wm.updateViewLayout(this@ToolbarView, service.toolbarParams)
+        }
+    }
+
+    /**
+     * 自定义标题栏：拦截所有子控件触摸事件，确保拖动灵敏；
+     * 同时根据落点识别「单击 toggle」和「双击 title」。
+     */
+    private class DragHeader(
+        context: Context,
+        private val titleView: View,
+        private val toggleView: View,
+        private val onToggle: () -> Unit,
+        private val onDoubleTapTitle: () -> Unit
+    ) : LinearLayout(context) {
+
+        var onDrag: ((Float, Float) -> Unit)? = null
+
+        private var startRawX = 0f
+        private var startRawY = 0f
+        private var startWinX = 0
+        private var startWinY = 0
+        private var downTime = 0L
+        private var lastTitleTap = 0L
+
+        init {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(12, 8, 12, 8)
+            background = context.getDrawable(R.drawable.toolbar_header_bg)
+        }
+
+        override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+            // 拦截所有触摸事件，子控件不再处理
+            return true
+        }
+
+        override fun onTouchEvent(event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    startX = event.rawX
-                    startY = event.rawY
-                    paramX = service.toolbarParams.x
-                    paramY = service.toolbarParams.y
-                    true
+                    startRawX = event.rawX
+                    startRawY = event.rawY
+                    val p = (parent as? ToolbarView)?.service?.toolbarParams
+                    startWinX = p?.x ?: 0
+                    startWinY = p?.y ?: 0
+                    downTime = System.currentTimeMillis()
+                    return true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    service.toolbarParams.x = paramX + (event.rawX - startX).toInt()
-                    service.toolbarParams.y = paramY + (event.rawY - startY).toInt()
-                    wm.updateViewLayout(this@ToolbarView, service.toolbarParams)
-                    true
+                    onDrag?.invoke(
+                        startWinX + (event.rawX - startRawX),
+                        startWinY + (event.rawY - startRawY)
+                    )
+                    return true
                 }
-                else -> false
+                MotionEvent.ACTION_UP -> {
+                    val dx = event.rawX - startRawX
+                    val dy = event.rawY - startRawY
+                    if (kotlin.math.hypot(dx.toDouble(), dy.toDouble()) < 12.0) {
+                        // 判定为点击而非拖动
+                        val x = event.x
+                        val y = event.y
+                        if (hitView(toggleView, x, y)) {
+                            onToggle()
+                        } else if (hitView(titleView, x, y)) {
+                            val now = System.currentTimeMillis()
+                            if (now - lastTitleTap < 300) onDoubleTapTitle()
+                            lastTitleTap = now
+                        }
+                    }
+                    return true
+                }
             }
+            return true
+        }
+
+        private fun hitView(v: View, x: Float, y: Float): Boolean {
+            return x >= v.left && x <= v.right && y >= v.top && y <= v.bottom
         }
     }
 }
