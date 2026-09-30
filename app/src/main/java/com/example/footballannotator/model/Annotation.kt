@@ -13,8 +13,8 @@ sealed class Annotation(
     ) : Annotation(color, strokeWidth)
 
     data class Arrow(
-        val x1: Float,
-        val y1: Float,
+        var x1: Float,
+        var y1: Float,
         var x2: Float,
         var y2: Float,
         val style: ArrowStyle = ArrowStyle.SOLID,
@@ -23,8 +23,8 @@ sealed class Annotation(
     ) : Annotation(color, strokeWidth)
 
     data class Line(
-        val x1: Float,
-        val y1: Float,
+        var x1: Float,
+        var y1: Float,
         var x2: Float,
         var y2: Float,
         val style: LineStyle = LineStyle.SOLID,
